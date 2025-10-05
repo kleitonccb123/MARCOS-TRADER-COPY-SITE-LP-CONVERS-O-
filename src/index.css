@@ -1,0 +1,224 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Price Pro Landing Page Design System
+All colors MUST be HSL.
+*/
+
+@layer base {
+  :root {
+    /* Core background colors - Brand Identity */
+    --background: 240 19% 6%;      /* #0B0B0F - Azul Escuro Fundo */
+    --foreground: 0 0% 100%;       /* #FFFFFF - Branco Neutro */
+    
+    /* Card backgrounds */
+    --card: 220 15% 13%;           /* #1A1D23 - Cinza Escuro Elementos */
+    --card-foreground: 0 0% 100%;  /* #FFFFFF - Branco Neutro */
+    
+    /* Popover colors */
+    --popover: 220 15% 13%;        /* #1A1D23 - Cinza Escuro Elementos */
+    --popover-foreground: 0 0% 100%; /* #FFFFFF - Branco Neutro */
+    
+    /* Text colors */
+    --text-primary: 0 0% 100%;     /* #FFFFFF - Branco Neutro */
+    --text-muted: 0 0% 70%;        /* Cinza claro para texto secundário */
+    
+    /* Accent colors - Brand Identity */
+    --accent-cyan: 189 100% 50%;   /* #00E0FF - Azul Ciano Neon */
+    --accent-cyan-dark: 189 100% 40%; /* Azul ciano mais escuro */
+    --accent-orange: 32 100% 62%;   /* Laranja complementar */
+    --accent-green: 142 71% 45%;    /* Verde complementar */
+    --accent-red: 0 85% 60%;        /* Vermelho complementar */
+    
+    /* Primary brand colors */
+    --primary: 189 100% 50%;        /* #00E0FF - Azul Ciano Neon */
+    --primary-foreground: 0 0% 100%; /* #FFFFFF - Branco Neutro */
+    --primary-dark: 189 100% 40%;   /* Azul ciano mais escuro */
+    
+    /* Secondary colors */
+    --secondary: 220 15% 13%;       /* #1A1D23 - Cinza Escuro Elementos */
+    --secondary-foreground: 0 0% 100%; /* #FFFFFF - Branco Neutro */
+    
+    /* Utility colors */
+    --muted: 220 15% 13%;           /* Cinza escuro para elementos mudos */
+    --muted-foreground: 0 0% 70%;   /* Texto mudo em cinza claro */
+    --accent: 189 100% 50%;         /* #00E0FF - Azul Ciano Neon */
+    --accent-foreground: 240 19% 6%; /* #0B0B0F - Azul Escuro Fundo */
+    --destructive: 0 85% 60%;       /* Vermelho para destrutivo */
+    --destructive-foreground: 0 0% 100%; /* #FFFFFF - Branco Neutro */
+    
+    /* Borders and inputs */
+    --border: 220 15% 20%;          /* Borda mais clara que elementos */
+    --input: 220 15% 13%;           /* #1A1D23 - Cinza Escuro Elementos */
+    --ring: 189 100% 50%;           /* #00E0FF - Azul Ciano Neon */
+    
+    /* Border radius */
+    --radius: 1rem;
+
+    --sidebar-background: 0 0% 98%;
+
+    --sidebar-foreground: 240 5.3% 26.1%;
+
+    --sidebar-primary: 240 5.9% 10%;
+
+    --sidebar-primary-foreground: 0 0% 98%;
+
+    --sidebar-accent: 240 4.8% 95.9%;
+
+    --sidebar-accent-foreground: 240 5.9% 10%;
+
+    --sidebar-border: 220 13% 91%;
+
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    /* Use same brand colors in dark mode */
+    --background: 240 19% 6%;      /* #0B0B0F - Azul Escuro Fundo */
+    --foreground: 0 0% 100%;       /* #FFFFFF - Branco Neutro */
+
+    --card: 220 15% 13%;           /* #1A1D23 - Cinza Escuro Elementos */
+    --card-foreground: 0 0% 100%;  /* #FFFFFF - Branco Neutro */
+
+    --popover: 220 15% 13%;        /* #1A1D23 - Cinza Escuro Elementos */
+    --popover-foreground: 0 0% 100%; /* #FFFFFF - Branco Neutro */
+
+    --primary: 189 100% 50%;       /* #00E0FF - Azul Ciano Neon */
+    --primary-foreground: 0 0% 100%; /* #FFFFFF - Branco Neutro */
+
+    --secondary: 220 15% 13%;      /* #1A1D23 - Cinza Escuro Elementos */
+    --secondary-foreground: 0 0% 100%; /* #FFFFFF - Branco Neutro */
+
+    --muted: 220 15% 13%;          /* Cinza escuro para elementos mudos */
+    --muted-foreground: 0 0% 70%;  /* Texto mudo em cinza claro */
+
+    --accent: 189 100% 50%;        /* #00E0FF - Azul Ciano Neon */
+    --accent-foreground: 240 19% 6%; /* #0B0B0F - Azul Escuro Fundo */
+
+    --destructive: 0 85% 60%;      /* Vermelho para destrutivo */
+    --destructive-foreground: 0 0% 100%; /* #FFFFFF - Branco Neutro */
+
+    --border: 220 15% 20%;         /* Borda mais clara que elementos */
+    --input: 220 15% 13%;          /* #1A1D23 - Cinza Escuro Elementos */
+    --ring: 189 100% 50%;          /* #00E0FF - Azul Ciano Neon */
+    
+    --sidebar-background: 220 15% 13%;
+    --sidebar-foreground: 0 0% 100%;
+    --sidebar-primary: 189 100% 50%;
+    --sidebar-primary-foreground: 240 19% 6%;
+    --sidebar-accent: 220 15% 20%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 220 15% 20%;
+    --sidebar-ring: 189 100% 50%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-body antialiased;
+  }
+}
+
+/* Custom typography and utility classes for Price Pro */
+@layer utilities {
+  .font-heading {
+    font-family: 'Poppins', 'Inter', system-ui, sans-serif;
+  }
+  
+  .font-body {
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+  
+  .shadow-card {
+    box-shadow: 0 12px 40px hsl(0 0% 0% / 0.35);
+  }
+  
+  .gradient-primary {
+    background: linear-gradient(135deg, hsl(var(--accent-cyan)) 0%, hsl(var(--accent-cyan-dark)) 100%);
+  }
+  
+  .gradient-orange {
+    background: linear-gradient(135deg, hsl(var(--accent-orange)) 0%, hsl(32 100% 52%) 100%);
+  }
+  
+  .text-gradient {
+    background: linear-gradient(135deg, hsl(var(--accent-cyan)) 0%, hsl(var(--accent-orange)) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+}
+
+/* Animation keyframes */
+@layer utilities {
+  @keyframes fade-up {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  
+  @keyframes slide-in-left {
+    from {
+      opacity: 0;
+      transform: translateX(-30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+  
+  @keyframes scale-in {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+  
+  .animate-fade-up {
+    animation: fade-up 0.6s ease-out forwards;
+  }
+  
+  .animate-fade-in {
+    animation: fade-in 0.4s ease-out forwards;
+  }
+  
+  .animate-slide-in-left {
+    animation: slide-in-left 0.5s ease-out forwards;
+  }
+  
+  .animate-scale-in {
+    animation: scale-in 0.3s ease-out forwards;
+  }
+  
+  .hover-lift {
+    transition: transform 0.2s ease-out;
+  }
+  
+  .hover-lift:hover {
+    transform: translateY(-2px);
+  }
+}
