@@ -1,5 +1,4 @@
 import { useState, FormEvent } from "react";
-
 export default function SellFluxForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
