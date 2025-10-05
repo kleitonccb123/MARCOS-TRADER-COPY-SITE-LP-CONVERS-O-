@@ -1,129 +1,116 @@
-import { useState, FormEvent } from "react";
-export default function SellFluxForm() {
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [formData, setFormData] = useState({
-    nome: "",
-    whatsapp: "",
-    email: "",
-    termos: false,
-  });
+// src/pages/Index.tsx
+import SellFluxForm from "@/components/SellFluxForm";
+import { ArrowRight, CheckCircle, Shield, TrendingUp } from "lucide-react";
 
-  const formatWhatsApp = (value: string) => {
-    let numbers = value.replace(/\D/g, "");
-    if (numbers.startsWith("55")) numbers = numbers.slice(2);
-    if (!numbers) return "";
-    if (numbers.length <= 2) return `+55 (${numbers}`;
-    if (numbers.length <= 7) return `+55 (${numbers.slice(0, 2)}) ${numbers.slice(2)}`;
-    return `+55 (${numbers.slice(0, 2)}) ${numbers.slice(2, 7)}-${numbers.slice(7, 11)}`;
-  };
-
-  const getUrlParams = () => {
-    const p = new URLSearchParams(location.search);
-    return {
-      utm_source: p.get("utm_source") || "",
-      utm_medium: p.get("utm_medium") || "",
-      utm_campaign: p.get("utm_campaign") || "",
-      page_url: location.href,
-    };
-  };
-
-  async function handleSubmit(e: FormEvent) {
-    e.preventDefault();
-    setIsSubmitting(true);
-    try {
-      const qs = new URLSearchParams();
-
-      if (formData.email) qs.set("email", formData.email.trim().toLowerCase());
-      qs.set("nome", formData.nome.trim());
-      qs.set("whatsapp", formData.whatsapp.replace(/\D/g, "")); // só dígitos
-      qs.set("tag", "copy-ativo"); // mude para "saiu-do-copy" ou "copytrade-tradeprice"
-
-      const utm = getUrlParams();
-      if (utm.utm_source) qs.set("utm_source", utm.utm_source);
-      if (utm.utm_medium) qs.set("utm_medium", utm.utm_medium);
-      if (utm.utm_campaign) qs.set("utm_campaign", utm.utm_campaign);
-      qs.set("page_url", utm.page_url);
-
-      const WEBHOOK =
-        "https://webhook.sellflux.app/webhook/lead/bc3cc1f71780180f4cc04578f72064a9";
-
-      await fetch(`${WEBHOOK}?${qs.toString()}`, { method: "GET", mode: "no-cors" });
-
-      alert("Sucesso! Vamos te levar para o Telegram.");
-      location.href = "https://t.me/+hovOygBawbg5YWIx";
-    } catch (err) {
-      alert("Não foi possível enviar agora. Tente novamente.");
-      console.error(err);
-    } finally {
-      setIsSubmitting(false);
-    }
-  }
-
+export default function Index() {
   return (
-    <section className="py-12 px-4">
-      <div className="max-w-[680px] mx-auto">
-        <div className="bg-card rounded-2xl p-8 border border-white/10">
-          <h2 className="text-2xl font-bold mb-2">Comece agora seu Copy Trader</h2>
-          <p className="text-sm opacity-80 mb-8">Preencha os dados abaixo para acesso imediato</p>
+    <main className="min-h-screen bg-gradient-to-b from-background to-accent-cyan/[0.03] text-text-primary">
+      {/* HERO */}
+      <section className="px-4 pt-16 pb-10 md:pt-24 md:pb-14">
+        <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-10 items-center">
+          <div>
+            <span className="inline-flex items-center gap-2 text-xs md:text-sm px-3 py-1 rounded-full bg-accent-cyan/10 text-accent-cyan mb-4">
+              <TrendingUp className="w-4 h-4" />
+              Copy Trader PricePro
+            </span>
+            <h1 className="font-heading text-3xl md:text-5xl font-extrabold leading-tight">
+              Copie minhas operações com
+              <span className="text-accent-cyan"> segurança</span> e
+              <span className="text-accent-cyan"> praticidade</span>.
+            </h1>
+            <p className="mt-4 text-text-muted md:text-lg">
+              Configure em poucos minutos, receba os sinais automaticamente e
+              acompanhe em tempo real. Feito para quem quer simplicidade.
+            </p>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <label className="block text-sm mb-2">Nome completo *</label>
-              <input
-                value={formData.nome}
-                onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
-                required
-                className="w-full px-4 py-3 rounded-lg bg-black/20 border border-white/10"
-                placeholder="Seu nome completo"
-              />
+            <div className="mt-6 flex items-center gap-4">
+              <a
+                href="#form-sellflux"
+                className="inline-flex items-center gap-2 bg-accent-cyan text-white px-5 py-3 rounded-xl font-semibold hover:opacity-90 transition"
+              >
+                Começar agora <ArrowRight className="w-5 h-5" />
+              </a>
+              <div className="text-xs md:text-sm text-text-muted">
+                <div className="flex items-center gap-2">
+                  <Shield className="w-4 h-4" />
+                  Dados protegidos
+                </div>
+              </div>
             </div>
+          </div>
 
-            <div>
-              <label className="block text-sm mb-2">WhatsApp *</label>
-              <input
-                value={formData.whatsapp}
-                onChange={(e) =>
-                  setFormData({ ...formData, whatsapp: formatWhatsApp(e.target.value) })
-                }
-                required
-                className="w-full px-4 py-3 rounded-lg bg-black/20 border border-white/10"
-                placeholder="+55 (11) 99999-9999"
-              />
+          <div className="rounded-2xl border border-accent-cyan/20 bg-card p-5 md:p-8 shadow-card">
+            <div className="aspect-video w-full rounded-xl bg-black/50 grid place-items-center">
+              <p className="text-text-muted text-sm">
+                (Coloque aqui sua imagem/vídeo de demonstração)
+              </p>
             </div>
-
-            <div>
-              <label className="block text-sm mb-2">E-mail (opcional)</label>
-              <input
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className="w-full px-4 py-3 rounded-lg bg-black/20 border border-white/10"
-                placeholder="seu@email.com"
-              />
-            </div>
-
-            <div className="flex items-start gap-3">
-              <input
-                type="checkbox"
-                checked={formData.termos}
-                onChange={(e) => setFormData({ ...formData, termos: e.target.checked })}
-                required
-              />
-              <span className="text-sm opacity-80">
-                Li e aceito os Termos de Uso e o Aviso de Risco. *
-              </span>
-            </div>
-
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="w-full py-4 font-semibold rounded-lg bg-cyan-500 disabled:opacity-60"
-            >
-              {isSubmitting ? "Enviando..." : "Quero iniciar meu Copy Trader"}
-            </button>
-          </form>
+            <ul className="mt-6 grid md:grid-cols-2 gap-3 text-sm text-text-muted">
+              <li className="flex items-center gap-2">
+                <CheckCircle className="text-accent-cyan w-4 h-4" />
+                Integração rápida
+              </li>
+              <li className="flex items-center gap-2">
+                <CheckCircle className="text-accent-cyan w-4 h-4" />
+                Zero complicação
+              </li>
+              <li className="flex items-center gap-2">
+                <CheckCircle className="text-accent-cyan w-4 h-4" />
+                Acompanhamento em tempo real
+              </li>
+              <li className="flex items-center gap-2">
+                <CheckCircle className="text-accent-cyan w-4 h-4" />
+                Suporte humano
+              </li>
+            </ul>
+          </div>
         </div>
-      </div>
-    </section>
+      </section>
+
+      {/* BENEFÍCIOS */}
+      <section className="px-4 py-12 md:py-16">
+        <div className="max-w-6xl mx-auto grid md:grid-cols-3 gap-6">
+          <div className="p-6 rounded-2xl bg-card border border-accent-cyan/20">
+            <h3 className="font-semibold text-lg mb-2">Configuração simples</h3>
+            <p className="text-text-muted text-sm">
+              Em poucos passos você conecta e começa a copiar as operações.
+            </p>
+          </div>
+          <div className="p-6 rounded-2xl bg-card border border-accent-cyan/20">
+            <h3 className="font-semibold text-lg mb-2">Controle total</h3>
+            <p className="text-text-muted text-sm">
+              Defina limites, risco e volume conforme seu perfil.
+            </p>
+          </div>
+          <div className="p-6 rounded-2xl bg-card border border-accent-cyan/20">
+            <h3 className="font-semibold text-lg mb-2">Acesso imediato</h3>
+            <p className="text-text-muted text-sm">
+              Preencha o formulário e receba instruções direto no Telegram.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* FORMULÁRIO (SellFlux) */}
+      <SellFluxForm />
+
+      {/* CTA FINAL */}
+      <section className="px-4 py-14 md:py-20">
+        <div className="max-w-5xl mx-auto bg-card border border-accent-cyan/20 rounded-3xl p-8 md:p-12 text-center">
+          <h3 className="font-heading text-2xl md:text-3xl font-bold">
+            Pronto para começar?
+          </h3>
+          <p className="text-text-muted mt-2 md:text-lg">
+            Leva menos de 2 minutos para enviar seus dados e receber o acesso.
+          </p>
+          <a
+            href="#form-sellflux"
+            className="inline-flex items-center gap-2 bg-accent-cyan text-white px-6 py-3 rounded-xl font-semibold hover:opacity-90 transition mt-6"
+          >
+            Iniciar agora <ArrowRight className="w-5 h-5" />
+          </a>
+        </div>
+      </section>
+    </main>
   );
 }
