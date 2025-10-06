@@ -1,4 +1,4 @@
-name: Build & Deploy (Hostinger FTP)
+name: Build & Deploy to Hostinger (FTPS)
 
 on:
   push:
@@ -16,8 +16,8 @@ jobs:
       - name: Use Node 20
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
-          cache: "npm"
+          node-version: '20'
+          cache: 'npm'
 
       - name: Install deps (CI)
         run: npm ci
@@ -25,23 +25,54 @@ jobs:
       - name: Build (Vite)
         run: npm run build
 
-      # Guarda uma prova de que a pasta dist foi gerada
-      - name: Verify build output
+      - name: Create version file (proof of deploy)
+        run: echo "build=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" > dist/version.txt
+
+      - name: Verify dist/
         run: |
           ls -la
           ls -la dist || (echo "ERRO: pasta dist/ não encontrada. Confira seu build." && exit 1)
 
-      # Deploy via FTP (atenção às barras finais!)
-      - name: Upload via FTP
+      # --- Opcional: se publicar em subpasta e precisar setar base ---
+      # - name: Set VITE_BASE (optional)
+      #   run: echo "VITE_BASE=${{ secrets.VITE_BASE || '/' }}" >> $GITHUB_ENV
+
+      - name: Install lftp (for remote listing debug)
+        run: sudo apt-get update && sudo apt-get install -y lftp
+
+      - name: Remote PWD & LIST (FTPS) - debug
+        env:
+          HOST: ${{ secrets.FTP_SERVER }}
+          USER: ${{ secrets.FTP_USERNAME }}
+          PASS: ${{ secrets.FTP_PASSWORD }}
+          DIR:  ${{ secrets.FTP_DIR }}
+        run: |
+          echo "Conectando e listando diretório remoto..."
+          lftp -e "
+            set ftp:ssl-force true;
+            set ftp:ssl-protect-data true;
+            set net:max-retries 2;
+            set net:timeout 20;
+            open -u $USER,$PASS $HOST;
+            pwd;
+            cd $DIR;
+            pwd;
+            ls -la;
+            bye
+          "
+          echo "Se acima não listou a pasta correta, ajuste o secret FTP_DIR."
+
+      - name: Upload via FTPS
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
-          server: ${{ secrets.FTP_SERVER }}
-          username: ${{ secrets.FTP_USERNAME }}
+          server: ${{ secrets.FTP_SERVER }}        # ex.: ftp.copypriceprofx.site ou o IP
+          username: ${{ secrets.FTP_USERNAME }}    # ex.: deploy.copypriceprofx
           password: ${{ secrets.FTP_PASSWORD }}
-          protocol: ftp
+          protocol: ftps
           port: 21
-          local-dir: ./dist/          # <<< PRECISA terminar com /
-          server-dir: ${{ secrets.FTP_DIR }}  # ex.: public_html/
+          local-dir: ./dist/                       # precisa terminar com /
+          server-dir: ${{ secrets.FTP_DIR }}       # veja abaixo; deve terminar com /
+          timeout: 600000
           exclude: |
             **/.git*
             **/.github/**
@@ -49,3 +80,16 @@ jobs:
             **/src/**
             **/vite.config.ts
             **/tsconfig*.json
+
+      # --- Opcional: limpar antes de subir (cuidado!) ---
+      # - name: Clean & Upload (dangerous)
+      #   uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+      #   with:
+      #     server: ${{ secrets.FTP_SERVER }}
+      #     username: ${{ secrets.FTP_USERNAME }}
+      #     password: ${{ secrets.FTP_PASSWORD }}
+      #     protocol: ftps
+      #     port: 21
+      #     local-dir: ./dist/
+      #     server-dir: ${{ secrets.FTP_DIR }}
+      #     dangerous-clean-slate: true
