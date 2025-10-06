@@ -1,8 +1,9 @@
-name: Deploy to Hostinger (FTP)
+name: Build & Deploy (Hostinger FTP)
 
 on:
   push:
     branches: [ main ]
+  workflow_dispatch:
 
 jobs:
   build-and-deploy:
@@ -16,26 +17,35 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "20"
+          cache: "npm"
 
       - name: Install deps (CI)
         run: npm ci
 
-      - name: Build
+      - name: Build (Vite)
         run: npm run build
 
+      # Guarda uma prova de que a pasta dist foi gerada
+      - name: Verify build output
+        run: |
+          ls -la
+          ls -la dist || (echo "ERRO: pasta dist/ não encontrada. Confira seu build." && exit 1)
+
+      # Deploy via FTP (atenção às barras finais!)
       - name: Upload via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          protocol: ftp          # se preferir FTPS: mude para "ftps"
+          protocol: ftp
           port: 21
-          local-dir: dist        # envia só a pasta buildada
-          server-dir: ${{ secrets.FTP_DIR }}
-          # Exclui arquivos do build que não fazem sentido enviar
+          local-dir: ./dist/          # <<< PRECISA terminar com /
+          server-dir: ${{ secrets.FTP_DIR }}  # ex.: public_html/
           exclude: |
             **/.git*
-            **/.git*/**
-            **/node_modules/**
             **/.github/**
+            **/node_modules/**
+            **/src/**
+            **/vite.config.ts
+            **/tsconfig*.json
