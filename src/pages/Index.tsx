@@ -1,59 +1,39 @@
-import { useEffect } from "react";
-import { TopBarNotice } from "@/components/TopBarNotice";
-import { ScrollProgress } from "@/components/ScrollProgress";
-import { HeroTitle } from "@/components/HeroTitle";
-import VideoHero from "@/components/VideoHero";
-import SellFluxForm from "@/components/SellFluxForm";
-import { HeroBenefits } from "@/components/HeroBenefits";
-import { HeroActions } from "@/components/HeroActions";
-import { VideoSection } from "@/components/VideoSection";
-import { OfferCard } from "@/components/OfferCard";
-import { ChartDemo } from "@/components/ChartDemo";
-import { BenefitsSection } from "@/components/BenefitsSection";
-import { ReasonsGrid } from "@/components/ReasonsGrid";
-import { TestimonialsSection } from "@/components/TestimonialsSection";
-import { StatsSection } from "@/components/StatsSection";
-import { ChatBot } from "@/components/ChatBot";
-import { Footer } from "@/components/Footer";
-import MacbookScrollDemo from "@/components/MacbookScrollDemo";
-import { LiveStats } from "@/components/LiveStats";
-import { BenefitsHighlight } from "@/components/BenefitsHighlight";
-import { SocialDock } from "@/components/SocialDock";
-import { AboutTrader } from "@/components/AboutTrader";
-
-const Index = () => {
-  useEffect(() => {
-    // Scroll to top on page load
-    window.scrollTo(0, 0);
-  }, []);
-
+export const TopBarNotice = () => null;
+export const ScrollProgress = () => null;
+export const HeroTitle = () => (
+  <section className="px-4 py-10 text-center">
+    <h1 className="text-3xl md:text-5xl font-bold">Copy Trader PricePro</h1>
+    <p className="text-text-muted mt-2">Conecte e receba os sinais automaticamente. Simples e rápido.</p>
+  </section>
+);
+export default function VideoHero() {
   return (
-    <div className="min-h-screen bg-background">
-      <ScrollProgress />
-      <TopBarNotice />
-      <main>
-        <HeroTitle />
-        <VideoHero />
-        <SellFluxForm />
-        <HeroBenefits />
-        <HeroActions />
-        <LiveStats />
-        <ChartDemo />
-        <VideoSection />
-        <OfferCard />
-        <BenefitsHighlight />
-        <MacbookScrollDemo />
-        <BenefitsSection />
-        <ReasonsGrid />
-        <TestimonialsSection />
-        <AboutTrader />
-        <StatsSection />
-        <ChatBot />
-      </main>
-      <Footer />
-      <SocialDock />
-    </div>
+    <section className="px-4 pb-10">
+      <div className="max-w-6xl mx-auto rounded-2xl border border-accent-cyan/20 bg-card p-6">
+        <div className="aspect-video w-full rounded-xl bg-black/50 grid place-items-center">
+          <p className="text-text-muted text-sm">VideoHero</p>
+        </div>
+      </div>
+    </section>
   );
-};
-
-export default Index;
+}
+export const HeroBenefits = () => (<section className="px-4 py-10 text-center">HeroBenefits</section>);
+export const HeroActions = () => (<section className="px-4 py-10 text-center">HeroActions</section>);
+export const VideoSection = () => (<section className="px-4 py-10 text-center">VideoSection</section>);
+export const OfferCard = () => (<section className="px-4 py-10 text-center">OfferCard</section>);
+export const ChartDemo = () => (<section className="px-4 py-10 text-center">ChartDemo</section>);
+export const BenefitsSection = () => (<section className="px-4 py-10 text-center">BenefitsSection</section>);
+export const ReasonsGrid = () => (<section className="px-4 py-10 text-center">ReasonsGrid</section>);
+export const TestimonialsSection = () => (<section className="px-4 py-10 text-center">TestimonialsSection</section>);
+export const StatsSection = () => (<section className="px-4 py-10 text-center">StatsSection</section>);
+export const ChatBot = () => null;
+export const Footer = () => (
+  <footer className="px-4 py-10 text-center border-t border-white/10">Footer</footer>
+);
+export default function MacbookScrollDemo() {
+  return <section classNexport const LiveStats = () => (<section className="px-4 py-10 text-center">LiveStats</section>);="px-4 py-10 text-center">MacbookScrollDemo</section>;
+}
+export const LiveStats = () => (<section className="px-4 py-10 text-center">LiveStats</section>);
+export const BenefitsHighlight = () => (<section className="px-4 py-10 text-center">BenefitsHighlight</section>);
+export const SocialDock = () => null;
+export const AboutTrader = () => (<section className="px-4 py-10 text-center">AboutTrader</section>);
