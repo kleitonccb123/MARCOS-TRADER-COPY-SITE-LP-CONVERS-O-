@@ -15,25 +15,21 @@ jobs:
     timeout-minutes: 30
 
     steps:
-      # 1) Código
       - name: Checkout
         uses: actions/checkout@v4
 
-      # 2) Node + cache de deps
       - name: Use Node 20
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
 
-      # 3) Instala e compila
       - name: Install deps (CI)
         run: npm ci
 
       - name: Build (Vite)
         run: npm run build
 
-      # 4) Sinal de versão para validar no navegador
       - name: Create version file
         run: |
           echo "build=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" > dist/version.txt
@@ -42,43 +38,38 @@ jobs:
         run: |
           ls -la dist || (echo 'ERRO: dist/ nao gerado' && exit 1)
 
-      # 5) (opcional) Pequeno teste de conexão/listagem - não falha o job
       - name: Remote PWD & LIST (FTPS) - debug quick check
         continue-on-error: true
         env:
-          HOST: ${{ secrets.FTP_SERVER }}
-          USER: ${{ secrets.FTP_USERNAME }}
-          PASS: ${{ secrets.FTP_PASSWORD }}
-          DIR:  ${{ secrets.FTP_DIR }}
+          FTP_HOST: ${{ secrets.FTP_SERVER }}
+          FTP_USER: ${{ secrets.FTP_USERNAME }}
+          FTP_PASS: ${{ secrets.FTP_PASSWORD }}
+          FTP_DIR:  ${{ secrets.FTP_DIR }}
         run: |
           sudo apt-get update && sudo apt-get install -y lftp
-          timeout 45s lftp -c "
+          timeout 45s lftp -e "
             set ftp:ssl-force true;
             set ftp:ssl-protect-data true;
             set ftp:passive-mode true;
             set ssl:verify-certificate no;
             set net:timeout 20;
-            open -u $USER,$PASS $HOST;
-            cd $DIR;
+            open -u ${FTP_USER},${FTP_PASS} ${FTP_HOST};
+            cd ${FTP_DIR};
             pwd;
             ls -la;
             bye
           " || echo 'DEBUG: LIST falhou/expirou - seguindo'
 
-      # 6) Upload via lftp (tolerante). Se falhar, há fallback abaixo.
       - name: Upload via lftp mirror (tolerante)
         id: lftp_upload
         env:
-          HOST: ${{ secrets.FTP_SERVER }}      # ex.: ftp.copypriceprofx.site ou ftpupload.net
-          USER: ${{ secrets.FTP_USERNAME }}
-          PASS: ${{ secrets.FTP_PASSWORD }}
-          DIR:  ${{ secrets.FTP_DIR }}         # ex.: public_html/
+          FTP_HOST: ${{ secrets.FTP_SERVER }}
+          FTP_USER: ${{ secrets.FTP_USERNAME }}
+          FTP_PASS: ${{ secrets.FTP_PASSWORD }}
+          FTP_DIR:  ${{ secrets.FTP_DIR }}
         run: |
           sudo apt-get update && sudo apt-get install -y lftp
-          set -e
-          # Até 25 minutos para o upload
-          timeout 25m bash -c '
-            lftp <<LFTP
+          timeout 25m lftp -e "
             set cmd:fail-exit yes;
             set ftp:ssl-force true;
             set ftp:ssl-protect-data true;
@@ -95,20 +86,16 @@ jobs:
             set xfer:clobber on;
             set xfer:use-temp-name no;
 
-            open -u '"$USER,$PASS"' '"$HOST"';
-            cd '"$DIR"';
-
+            open -u ${FTP_USER},${FTP_PASS} ${FTP_HOST};
+            cd ${FTP_DIR};
             mirror -R --only-newer --ignore-time --verbose \
                    --parallel=1 \
                    --exclude-glob .git* \
                    --exclude-glob node_modules \
                    ./dist .;
-
             bye
-LFTP
-          ' 
+          "
 
-      # 7) Fallback (só roda se o passo anterior falhar)
       - name: Fallback upload (SamKirkland)
         if: failure()
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
@@ -119,12 +106,10 @@ LFTP
           protocol: ftps
           port: 21
           local-dir: ./dist/
-          server-dir: ${{ secrets.FTP_DIR }}     # public_html/
+          server-dir: ${{ secrets.FTP_DIR }}
           security: loose
-          timeout: 900000                       # 15 min
+          timeout: 900000
           log-level: verbose
-          # dangerous-clean-slate: true          # << ATENÇÃO: só descomente se quiser APAGAR TUDO antes
 
-      # 8) Dica para você conferir no navegador
       - name: Print check URL
         run: echo "Abra https://copypriceprofx.site/version.txt para validar o deploy"
