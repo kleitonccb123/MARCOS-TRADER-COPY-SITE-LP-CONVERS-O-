@@ -12,41 +12,36 @@ concurrency:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
 
     steps:
+      # 1) Código
       - name: Checkout
         uses: actions/checkout@v4
 
+      # 2) Node + cache do npm
       - name: Use Node 20
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
 
+      # 3) Dependências e build
       - name: Install deps (CI)
-        run: |
-          npm ci
+        run: npm ci
 
       - name: Build (Vite)
-        run: |
-          npm run build
+        run: npm run build
 
-      # Prova de vida do deploy
+      # 4) Sinal de versão pra validar no navegador
       - name: Create version file
-        run: |
-          echo "build=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" > dist/version.txt
+        run: echo "build=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" > dist/version.txt
 
       - name: Verify dist/
-        run: |
-          ls -la dist || (echo 'ERRO: dist/ nao gerado' && exit 1)
+        run: ls -la dist || (echo 'ERRO: dist/ nao gerado' && exit 1)
 
-      # DEBUG opcional (lista remoto; nao falha se o certificado nao casar)
-      - name: Install lftp
-        run: |
-          sudo apt-get update && sudo apt-get install -y lftp
-
-      - name: Remote PWD & LIST (FTPS) - debug
+      # 5) (Opcional) Debug remoto com timeout duro (não trava o job)
+      - name: Remote PWD & LIST (FTPS) - debug (hard timeout)
         continue-on-error: true
         env:
           HOST: ${{ secrets.FTP_SERVER }}
@@ -54,45 +49,58 @@ jobs:
           PASS: ${{ secrets.FTP_PASSWORD }}
           DIR:  ${{ secrets.FTP_DIR }}
         run: |
-          echo "Listando diretorio remoto..."
-          lftp -e "
+          set -e
+          sudo apt-get update && sudo apt-get install -y lftp
+          timeout 45s lftp -c "
             set ftp:ssl-force true;
             set ftp:ssl-protect-data true;
+            set ftp:passive-mode true;
             set ssl:verify-certificate no;
-            set net:max-retries 2;
-            set net:timeout 20;
+            set net:max-retries 1;
+            set net:timeout 15;
             open -u $USER,$PASS $HOST;
-            pwd;
             cd $DIR;
             pwd;
             ls -la;
             bye
+          " || echo 'DEBUG: LIST timed out/falhou - seguindo para upload'
+
+      # 6) Upload robusto e rápido (lftp mirror)
+      - name: Upload via lftp mirror (rápido)
+        env:
+          HOST: ${{ secrets.FTP_SERVER }}
+          USER: ${{ secrets.FTP_USERNAME }}
+          PASS: ${{ secrets.FTP_PASSWORD }}
+          DIR:  ${{ secrets.FTP_DIR }}
+        run: |
+          sudo apt-get update && sudo apt-get install -y lftp
+          # --only-newer + --parallel acelera e envia só o que mudou
+          # timeout evita pendurar em caso de lentidão
+          timeout 10m lftp -c "
+            set ftp:ssl-force true;
+            set ftp:ssl-protect-data true;
+            set ftp:passive-mode true;
+            set ssl:verify-certificate no;
+            set net:timeout 30;
+            set net:max-retries 1;
+            open -u $USER,$PASS $HOST;
+            cd $DIR;
+            mirror -R --only-newer --ignore-time --verbose \
+                   --parallel=3 \
+                   --exclude-glob .git* \
+                   --exclude-glob node_modules \
+                   ./dist .;
+            bye
           "
 
-      # ====== DEPLOY NORMAL (sem apagar tudo) ======
-      - name: Upload via FTPS (normal)
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
-        with:
-          server: ${{ secrets.FTP_SERVER }}
-          username: ${{ secrets.FTP_USERNAME }}
-          password: ${{ secrets.FTP_PASSWORD }}
-          protocol: ftps
-          port: 21
-          local-dir: ./dist/
-          server-dir: ${{ secrets.FTP_DIR }}   # public_html/
-          security: loose
-          timeout: 600000
-          log-level: verbose
-          exclude: |
-            **/.git*
-            **/.github/**
-            **/node_modules/**
-            **/src/**
-            **/vite.config.ts
-            **/tsconfig*.json
+      # 7) Dica de validação no log
+      - name: Print check URL
+        run: echo "Abra https://copypriceprofx.site/version.txt para validar o deploy"
 
-      # --- Se um dia quiser apagar tudo antes de subir, troque pelo bloco abaixo ---
-      # - name: Clean & Upload (dangerous - use com cautela)
+      # ====== OPCIONAL: LIMPAR TUDO ANTES DE SUBIR (USE COM CAUTELA) ======
+      # Rode esse passo apenas quando quiser zerar totalmente o public_html/.
+      # Substitua o passo de upload acima por este bloco e rode 1x.
+      # - name: Clean & Upload (dangerous - clean slate)
       #   uses: SamKirkland/FTP-Deploy-Action@v4.3.4
       #   with:
       #     server: ${{ secrets.FTP_SERVER }}
@@ -101,7 +109,7 @@ jobs:
       #     protocol: ftps
       #     port: 21
       #     local-dir: ./dist/
-      #     server-dir: ${{ secrets.FTP_DIR }}
+      #     server-dir: ${{ secrets.FTP_DIR }}   # public_html/
       #     security: loose
       #     timeout: 600000
       #     dangerous-clean-slate: true
