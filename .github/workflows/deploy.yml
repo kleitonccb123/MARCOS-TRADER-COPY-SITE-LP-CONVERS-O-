@@ -30,14 +30,14 @@ jobs:
         run: echo "build=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" > dist/version.txt
 
       - name: Verify dist/
-        run: |
-          ls -la dist || (echo "ERRO: pasta dist/ não encontrada" && exit 1)
+        run: ls -la dist || (echo "ERRO: dist/ não gerado" && exit 1)
 
-      # Debug: lista pasta remota (com FTPS e relax de cert p/ evitar erro CN)
+      # DEBUG: lista remoto (não falha se o cert não casar)
       - name: Install lftp
         run: sudo apt-get update && sudo apt-get install -y lftp
 
       - name: Remote PWD & LIST (FTPS) - debug
+        continue-on-error: true
         env:
           HOST: ${{ secrets.FTP_SERVER }}
           USER: ${{ secrets.FTP_USERNAME }}
@@ -48,7 +48,7 @@ jobs:
           lftp -e "
             set ftp:ssl-force true;
             set ftp:ssl-protect-data true;
-            set ssl:verify-certificate no;   # ignora CN mismatch se o host não casar
+            set ssl:verify-certificate no;   # ignora CN mismatch
             set net:max-retries 2;
             set net:timeout 20;
             open -u $USER,$PASS $HOST;
@@ -62,14 +62,14 @@ jobs:
       - name: Upload via FTPS
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
-          server: ${{ secrets.FTP_SERVER }}        # ex.: ftp.copypriceprofx.site
+          server: ${{ secrets.FTP_SERVER }}     # ex.: ftp.copypriceprofx.site
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
           protocol: ftps
           port: 21
-          local-dir: ./dist/                       # precisa terminar com /
-          server-dir: ${{ secrets.FTP_DIR }}       # precisa terminar com /
-          security: loose                          # evita erro de certificado no FTPS
+          local-dir: ./dist/                   # <- barra final
+          server-dir: ${{ secrets.FTP_DIR }}   # <- barra final
+          security: loose                      # tolera cert diferente do host
           timeout: 600000
           exclude: |
             **/.git*
@@ -78,16 +78,3 @@ jobs:
             **/src/**
             **/vite.config.ts
             **/tsconfig*.json
-
-      # OPCIONAL: limpar pasta remota antes de subir (cuidado!)
-      # - name: Clean & Upload (dangerous)
-      #   uses: SamKirkland/FTP-Deploy-Action@v4.3.4
-      #   with:
-      #     server: ${{ secrets.FTP_SERVER }}
-      #     username: ${{ secrets.FTP_USERNAME }}
-      #     password: ${{ secrets.FTP_PASSWORD }}
-      #     protocol: ftps
-      #     port: 21
-      #     local-dir: ./dist/
-      #     server-dir: ${{ secrets.FTP_DIR }}
-      #     dangerous-clean-slate: true
