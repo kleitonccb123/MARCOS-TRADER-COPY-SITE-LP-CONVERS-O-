@@ -5,14 +5,9 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
-concurrency:
-  group: deploy-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
 
     steps:
       - name: Checkout
@@ -31,85 +26,33 @@ jobs:
         run: npm run build
 
       - name: Create version file
-        run: |
-          echo "build=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" > dist/version.txt
+        run: echo "build=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" > dist/version.txt
 
       - name: Verify dist/
-        run: |
-          ls -la dist || (echo 'ERRO: dist/ nao gerado' && exit 1)
+        run: ls -la dist || (echo "ERRO: dist/ não gerado" && exit 1)
 
-      - name: Remote PWD & LIST (FTPS) - debug quick check
-        continue-on-error: true
-        env:
-          FTP_HOST: ${{ secrets.FTP_SERVER }}
-          FTP_USER: ${{ secrets.FTP_USERNAME }}
-          FTP_PASS: ${{ secrets.FTP_PASSWORD }}
-          FTP_DIR:  ${{ secrets.FTP_DIR }}
-        run: |
-          sudo apt-get update && sudo apt-get install -y lftp
-          timeout 45s lftp -e "
-            set ftp:ssl-force true;
-            set ftp:ssl-protect-data true;
-            set ftp:passive-mode true;
-            set ssl:verify-certificate no;
-            set net:timeout 20;
-            open -u ${FTP_USER},${FTP_PASS} ${FTP_HOST};
-            cd ${FTP_DIR};
-            pwd;
-            ls -la;
-            bye
-          " || echo 'DEBUG: LIST falhou/expirou - seguindo'
+      - name: Install lftp
+        run: sudo apt-get update && sudo apt-get install -y lftp
 
       - name: Upload via lftp mirror (tolerante)
-        id: lftp_upload
         env:
-          FTP_HOST: ${{ secrets.FTP_SERVER }}
-          FTP_USER: ${{ secrets.FTP_USERNAME }}
-          FTP_PASS: ${{ secrets.FTP_PASSWORD }}
-          FTP_DIR:  ${{ secrets.FTP_DIR }}
+          HOST: ${{ secrets.FTP_SERVER }}   # ex.: ftp.copypriceprofx.site ou 147.93.14.207
+          USER: ${{ secrets.FTP_USERNAME }}
+          PASS: ${{ secrets.FTP_PASSWORD }}
+          DIR:  ${{ secrets.FTP_DIR }}      # ex.: public_html/
+          PORT: ${{ secrets.FTP_PORT || 21 }}
         run: |
-          sudo apt-get update && sudo apt-get install -y lftp
-          timeout 25m lftp -e "
-            set cmd:fail-exit yes;
+          lftp -c "
             set ftp:ssl-force true;
-            set ftp:ssl-protect-data true;
             set ftp:passive-mode true;
             set ssl:verify-certificate no;
-
             set net:timeout 40;
-            set net:max-retries 1;
-            set net:reconnect-interval-base 5;
-            set net:reconnect-interval-multiplier 1;
-            set net:reconnect-interval-max 10;
-
-            set ftp:sync-mode off;
-            set xfer:clobber on;
-            set xfer:use-temp-name no;
-
-            open -u ${FTP_USER},${FTP_PASS} ${FTP_HOST};
-            cd ${FTP_DIR};
-            mirror -R --only-newer --ignore-time --verbose \
-                   --parallel=1 \
-                   --exclude-glob .git* \
-                   --exclude-glob node_modules \
-                   ./dist .;
+            set net:max-retries 3;
+            set net:persist-retries 2;
+            open -u ${USER},${PASS} -p ${PORT} ${HOST};
+            mirror --reverse --delete --verbose dist ${DIR};
             bye
           "
-
-      - name: Fallback upload (SamKirkland)
-        if: failure()
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
-        with:
-          server: ${{ secrets.FTP_SERVER }}
-          username: ${{ secrets.FTP_USERNAME }}
-          password: ${{ secrets.FTP_PASSWORD }}
-          protocol: ftps
-          port: 21
-          local-dir: ./dist/
-          server-dir: ${{ secrets.FTP_DIR }}
-          security: loose
-          timeout: 900000
-          log-level: verbose
 
       - name: Print check URL
         run: echo "Abra https://copypriceprofx.site/version.txt para validar o deploy"
