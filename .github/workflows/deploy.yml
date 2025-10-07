@@ -1,112 +1,59 @@
-name: Build & Deploy to Hostinger (FTPS)
+# 6) Upload via lftp (lento/robusto) + fallback
+- name: Upload via lftp mirror (tolerante)
+  env:
+    HOST: ${{ secrets.FTP_SERVER }}      # ex.: ftp.copypriceprofx.site  (ou ftpupload.net)
+    USER: ${{ secrets.FTP_USERNAME }}
+    PASS: ${{ secrets.FTP_PASSWORD }}
+    DIR:  ${{ secrets.FTP_DIR }}         # ex.: public_html/
+  run: |
+    sudo apt-get update && sudo apt-get install -y lftp
 
-on:
-  push:
-    branches: [ main ]
-  workflow_dispatch:
+    # Tenta por até 25 minutos
+    set -e
+    timeout 25m lftp -c "
+      set cmd:fail-exit yes;
+      set ftp:ssl-force true;
+      set ftp:ssl-protect-data true;
+      set ftp:passive-mode true;
+      set ssl:verify-certificate no;
 
-concurrency:
-  group: deploy-${{ github.ref }}
-  cancel-in-progress: true
+      # timeouts/intervalos mais folgados
+      set net:timeout 40;
+      set net:max-retries 1;
+      set net:reconnect-interval-base 5;
+      set net:reconnect-interval-multiplier 1;
+      set net:reconnect-interval-max 10;
 
-jobs:
-  build-and-deploy:
-    runs-on: ubuntu-latest
-    timeout-minutes: 25
+      set ftp:sync-mode off;
+      set xfer:clobber on;
+      set xfer:use-temp-name no;
 
-    steps:
-      # 1) Código
-      - name: Checkout
-        uses: actions/checkout@v4
+      open -u $USER,$PASS $HOST;
+      cd $DIR;
 
-      # 2) Node + cache do npm
-      - name: Use Node 20
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
+      # Paralelismo conservador (se der 421/limite de conexões, deixe 1 mesmo)
+      mirror -R --only-newer --ignore-time --verbose \
+             --parallel=1 \
+             --exclude-glob .git* \
+             --exclude-glob node_modules \
+             ./dist .;
 
-      # 3) Dependências e build
-      - name: Install deps (CI)
-        run: npm ci
+      bye
+    " || echo 'LFTP falhou/expirou – vamos tentar o fallback'
+  continue-on-error: true
 
-      - name: Build (Vite)
-        run: npm run build
-
-      # 4) Sinal de versão pra validar no navegador
-      - name: Create version file
-        run: |
-          echo "build=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" > dist/version.txt
-
-      - name: Verify dist/
-        run: |
-          ls -la dist || (echo 'ERRO: dist/ nao gerado' && exit 1)
-
-      # 5) (Opcional) Debug remoto com timeout duro (não trava o job)
-      - name: Remote PWD & LIST (FTPS) - debug (hard timeout)
-        continue-on-error: true
-        env:
-          HOST: ${{ secrets.FTP_SERVER }}
-          USER: ${{ secrets.FTP_USERNAME }}
-          PASS: ${{ secrets.FTP_PASSWORD }}
-          DIR:  ${{ secrets.FTP_DIR }}
-        run: |
-          set -e
-          sudo apt-get update && sudo apt-get install -y lftp
-          timeout 45s lftp -c "
-            set ftp:ssl-force true;
-            set ftp:ssl-protect-data true;
-            set ftp:passive-mode true;
-            set ssl:verify-certificate no;
-            set net:max-retries 1;
-            set net:timeout 15;
-            open -u $USER,$PASS $HOST;
-            cd $DIR;
-            pwd;
-            ls -la;
-            bye
-          " || echo 'DEBUG: LIST timed out/falhou - seguindo para upload'
-
-      # 6) Upload robusto e rápido (lftp mirror)
-      - name: Upload via lftp mirror (rápido)
-        env:
-          HOST: ${{ secrets.FTP_SERVER }}
-          USER: ${{ secrets.FTP_USERNAME }}
-          PASS: ${{ secrets.FTP_PASSWORD }}
-          DIR:  ${{ secrets.FTP_DIR }}
-        run: |
-          sudo apt-get update && sudo apt-get install -y lftp
-          timeout 10m lftp -c "
-            set ftp:ssl-force true;
-            set ftp:ssl-protect-data true;
-            set ftp:passive-mode true;
-            set ssl:verify-certificate no;
-            set net:timeout 30;
-            set net:max-retries 1;
-            open -u $USER,$PASS $HOST;
-            cd $DIR;
-            mirror -R --only-newer --ignore-time --verbose \
-                   --parallel=3 \
-                   --exclude-glob .git* \
-                   --exclude-glob node_modules \
-                   ./dist .;
-            bye
-          "
-
-      - name: Print check URL
-        run: echo "Abra https://copypriceprofx.site/version.txt para validar o deploy"
-
-      # ====== OPCIONAL: LIMPAR TUDO ANTES DE SUBIR (USE COM CAUTELA) ======
-      # - name: Clean & Upload (dangerous - clean slate)
-      #   uses: SamKirkland/FTP-Deploy-Action@v4.3.4
-      #   with:
-      #     server: ${{ secrets.FTP_SERVER }}
-      #     username: ${{ secrets.FTP_USERNAME }}
-      #     password: ${{ secrets.FTP_PASSWORD }}
-      #     protocol: ftps
-      #     port: 21
-      #     local-dir: ./dist/
-      #     server-dir: ${{ secrets.FTP_DIR }}   # public_html/
-      #     security: loose
-      #     timeout: 600000
-      #     dangerous-clean-slate: true
+- name: Fallback upload (SamKirkland)
+  if: failure()
+  uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+  with:
+    server: ${{ secrets.FTP_SERVER }}
+    username: ${{ secrets.FTP_USERNAME }}
+    password: ${{ secrets.FTP_PASSWORD }}
+    protocol: ftps
+    port: 21
+    local-dir: ./dist/
+    server-dir: ${{ secrets.FTP_DIR }}     # public_html/
+    security: loose
+    timeout: 900000                        # 15 minutos
+    log-level: verbose
+    # dangerous-clean-slate: true          # NÃO habilitar a menos que queira APAGAR TUDO antes de enviar
