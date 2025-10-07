@@ -35,10 +35,12 @@ jobs:
 
       # 4) Sinal de versão pra validar no navegador
       - name: Create version file
-        run: echo "build=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" > dist/version.txt
+        run: |
+          echo "build=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" > dist/version.txt
 
       - name: Verify dist/
-        run: ls -la dist || (echo 'ERRO: dist/ nao gerado' && exit 1)
+        run: |
+          ls -la dist || (echo 'ERRO: dist/ nao gerado' && exit 1)
 
       # 5) (Opcional) Debug remoto com timeout duro (não trava o job)
       - name: Remote PWD & LIST (FTPS) - debug (hard timeout)
@@ -74,8 +76,6 @@ jobs:
           DIR:  ${{ secrets.FTP_DIR }}
         run: |
           sudo apt-get update && sudo apt-get install -y lftp
-          # --only-newer + --parallel acelera e envia só o que mudou
-          # timeout evita pendurar em caso de lentidão
           timeout 10m lftp -c "
             set ftp:ssl-force true;
             set ftp:ssl-protect-data true;
@@ -93,13 +93,10 @@ jobs:
             bye
           "
 
-      # 7) Dica de validação no log
       - name: Print check URL
         run: echo "Abra https://copypriceprofx.site/version.txt para validar o deploy"
 
       # ====== OPCIONAL: LIMPAR TUDO ANTES DE SUBIR (USE COM CAUTELA) ======
-      # Rode esse passo apenas quando quiser zerar totalmente o public_html/.
-      # Substitua o passo de upload acima por este bloco e rode 1x.
       # - name: Clean & Upload (dangerous - clean slate)
       #   uses: SamKirkland/FTP-Deploy-Action@v4.3.4
       #   with:
