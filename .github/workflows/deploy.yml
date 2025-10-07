@@ -8,6 +8,9 @@ on:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
 
     steps:
       - name: Checkout
@@ -29,30 +32,39 @@ jobs:
         run: echo "build=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" > dist/version.txt
 
       - name: Verify dist/
-        run: ls -la dist || (echo "ERRO: dist/ não gerado" && exit 1)
+        run: ls -la dist || { echo "ERRO: dist não gerado"; exit 1; }
 
       - name: Install lftp
         run: sudo apt-get update && sudo apt-get install -y lftp
 
-      - name: Upload via lftp mirror (tolerante)
+      - name: Upload via lftp (espelhamento)
         env:
-          HOST: ${{ secrets.FTP_SERVER }}   # ex.: ftp.copypriceprofx.site ou 147.93.14.207
+          HOST: ${{ secrets.FTP_SERVER }}      # ex.: ftp.copypriceprofx.site (ou 147.93.14.207)
           USER: ${{ secrets.FTP_USERNAME }}
           PASS: ${{ secrets.FTP_PASSWORD }}
-          DIR:  ${{ secrets.FTP_DIR }}      # ex.: public_html/
-          PORT: ${{ secrets.FTP_PORT || 21 }}
+          DIR:  ${{ secrets.FTP_DIR }}         # ex.: public_html/
+          PORT: ${{ secrets.FTP_PORT }}
         run: |
-          lftp -c "
-            set ftp:ssl-force true;
-            set ftp:passive-mode true;
-            set ssl:verify-certificate no;
-            set net:timeout 40;
-            set net:max-retries 3;
-            set net:persist-retries 2;
-            open -u ${USER},${PASS} -p ${PORT} ${HOST};
-            mirror --reverse --delete --verbose dist ${DIR};
-            bye
-          "
+          # Valores padrão
+          : "${PORT:=21}"
+          : "${DIR:=public_html/}"
+
+          # Gera script do lftp sem embolar o YAML
+          cat > deploy.lftp <<EOF
+          set ftp:ssl-force true
+          set ftp:ssl-allow true
+          set ftp:passive-mode true
+          set ssl:verify-certificate no
+          set net:timeout 40
+          set net:max-retries 3
+          set net:persist-retries 2
+
+          open -u "${USER}","${PASS}" -p "${PORT}" "${HOST}"
+          mirror --reverse --delete --verbose "dist" "${DIR}"
+          bye
+          EOF
+
+          lftp -f deploy.lftp
 
       - name: Print check URL
         run: echo "Abra https://copypriceprofx.site/version.txt para validar o deploy"
