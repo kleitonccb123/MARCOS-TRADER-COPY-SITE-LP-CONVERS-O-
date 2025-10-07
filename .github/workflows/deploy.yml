@@ -38,19 +38,6 @@ jobs:
       - name: Install lftp
         run: sudo apt-get update && sudo apt-get install -y lftp
 
-      # Teste rápido de FTPS (falha em ~1 min se algo estiver errado)
-      - name: FTPS quick check
-        timeout-minutes: 1
-        env:
-          HOST: ${{ secrets.FTP_SERVER }}
-          USER: ${{ secrets.FTP_USERNAME }}
-          PASS: ${{ secrets.FTP_PASSWORD }}
-          PORT: ${{ secrets.FTP_PORT }}
-        run: |
-          : "${PORT:=21}"
-          lftp -e "set net:timeout 10; set net:max-retries 1; set ftp:ssl-force true; set ftp:passive-mode true; set ssl:verify-certificate no; open -p ${PORT} -u ${USER},${PASS} ${HOST}; pwd; ls; bye" || exit 1
-
-      # Upload com tempo limitado
       - name: Upload via lftp (bounded)
         timeout-minutes: 15
         env:
@@ -62,7 +49,7 @@ jobs:
         run: |
           : "${PORT:=21}"
           : "${DIR:=public_html/}"
-          lftp -e "set net:timeout 20; set net:max-retries 2; set net:reconnect-interval-base 5; set net:reconnect-interval-multiplier 1; set ftp:ssl-force true; set ftp:ssl-allow true; set ftp:passive-mode true; set ssl:verify-certificate no; open -p ${PORT} -u ${USER},${PASS} ${HOST}; mirror --reverse --delete --only-newer --parallel=2 --verbose dist ${DIR}; bye" || exit 1
+          lftp -e "set net:timeout 20; set net:max-retries 2; set net:reconnect-interval-base 5; set net:reconnect-interval-multiplier 1; set ftp:ssl-force true; set ftp:ssl-allow true; set ftp:passive-mode true; set ssl:verify-certificate no; open -p ${PORT} -u ${USER},${PASS} ${HOST}; mirror --reverse --delete --only-newer --parallel=2 --verbose dist ${DIR}; bye"
 
       - name: Print check URL
         run: echo "Abra https://${{ secrets.FTP_SERVER }}/version.txt para validar o deploy"
