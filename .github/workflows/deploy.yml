@@ -25,19 +25,16 @@ jobs:
       - name: Build (Vite)
         run: npm run build
 
-      - name: Create version file (proof of deploy)
+      # Prova de vida do deploy
+      - name: Create version file
         run: echo "build=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" > dist/version.txt
 
       - name: Verify dist/
         run: |
-          ls -la
-          ls -la dist || (echo "ERRO: pasta dist/ não encontrada. Confira seu build." && exit 1)
+          ls -la dist || (echo "ERRO: pasta dist/ não encontrada" && exit 1)
 
-      # --- Opcional: se publicar em subpasta e precisar setar base ---
-      # - name: Set VITE_BASE (optional)
-      #   run: echo "VITE_BASE=${{ secrets.VITE_BASE || '/' }}" >> $GITHUB_ENV
-
-      - name: Install lftp (for remote listing debug)
+      # Debug: lista pasta remota (com FTPS e relax de cert p/ evitar erro CN)
+      - name: Install lftp
         run: sudo apt-get update && sudo apt-get install -y lftp
 
       - name: Remote PWD & LIST (FTPS) - debug
@@ -51,6 +48,7 @@ jobs:
           lftp -e "
             set ftp:ssl-force true;
             set ftp:ssl-protect-data true;
+            set ssl:verify-certificate no;   # ignora CN mismatch se o host não casar
             set net:max-retries 2;
             set net:timeout 20;
             open -u $USER,$PASS $HOST;
@@ -60,18 +58,18 @@ jobs:
             ls -la;
             bye
           "
-          echo "Se acima não listou a pasta correta, ajuste o secret FTP_DIR."
 
       - name: Upload via FTPS
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
-          server: ${{ secrets.FTP_SERVER }}        # ex.: ftp.copypriceprofx.site ou o IP
-          username: ${{ secrets.FTP_USERNAME }}    # ex.: deploy.copypriceprofx
+          server: ${{ secrets.FTP_SERVER }}        # ex.: ftp.copypriceprofx.site
+          username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
           protocol: ftps
           port: 21
           local-dir: ./dist/                       # precisa terminar com /
-          server-dir: ${{ secrets.FTP_DIR }}       # veja abaixo; deve terminar com /
+          server-dir: ${{ secrets.FTP_DIR }}       # precisa terminar com /
+          security: loose                          # evita erro de certificado no FTPS
           timeout: 600000
           exclude: |
             **/.git*
@@ -81,7 +79,7 @@ jobs:
             **/vite.config.ts
             **/tsconfig*.json
 
-      # --- Opcional: limpar antes de subir (cuidado!) ---
+      # OPCIONAL: limpar pasta remota antes de subir (cuidado!)
       # - name: Clean & Upload (dangerous)
       #   uses: SamKirkland/FTP-Deploy-Action@v4.3.4
       #   with:
