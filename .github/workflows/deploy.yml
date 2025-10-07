@@ -1,13 +1,18 @@
-name: Build & Deploy to Hostinger (FTPS) - FIRST RUN (clean slate)
+name: Build & Deploy to Hostinger (FTPS)
 
 on:
   push:
     branches: [ main ]
   workflow_dispatch:
 
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
 
     steps:
       - name: Checkout
@@ -36,7 +41,7 @@ jobs:
         run: |
           ls -la dist || (echo 'ERRO: dist/ nao gerado' && exit 1)
 
-      # (Opcional) Debug remoto - não falha se o cert não casar
+      # DEBUG opcional (lista remoto; nao falha se o certificado nao casar)
       - name: Install lftp
         run: |
           sudo apt-get update && sudo apt-get install -y lftp
@@ -64,8 +69,8 @@ jobs:
             bye
           "
 
-      # >>> PRIMEIRA EXECUÇÃO: APAGA public_html/ e publica do zero <<<
-      - name: Clean & Upload (dangerous - FIRST RUN ONLY)
+      # ====== DEPLOY NORMAL (sem apagar tudo) ======
+      - name: Upload via FTPS (normal)
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
           server: ${{ secrets.FTP_SERVER }}
@@ -77,4 +82,26 @@ jobs:
           server-dir: ${{ secrets.FTP_DIR }}   # public_html/
           security: loose
           timeout: 600000
-          dangerous-clean-slate: true
+          log-level: verbose
+          exclude: |
+            **/.git*
+            **/.github/**
+            **/node_modules/**
+            **/src/**
+            **/vite.config.ts
+            **/tsconfig*.json
+
+      # --- Se um dia quiser apagar tudo antes de subir, troque pelo bloco abaixo ---
+      # - name: Clean & Upload (dangerous - use com cautela)
+      #   uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+      #   with:
+      #     server: ${{ secrets.FTP_SERVER }}
+      #     username: ${{ secrets.FTP_USERNAME }}
+      #     password: ${{ secrets.FTP_PASSWORD }}
+      #     protocol: ftps
+      #     port: 21
+      #     local-dir: ./dist/
+      #     server-dir: ${{ secrets.FTP_DIR }}
+      #     security: loose
+      #     timeout: 600000
+      #     dangerous-clean-slate: true
