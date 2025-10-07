@@ -20,21 +20,26 @@ jobs:
           cache: 'npm'
 
       - name: Install deps (CI)
-        run: npm ci
+        run: |
+          npm ci
 
       - name: Build (Vite)
-        run: npm run build
+        run: |
+          npm run build
 
       # Prova de vida do deploy
       - name: Create version file
-        run: echo "build=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" > dist/version.txt
+        run: |
+          echo "build=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" > dist/version.txt
 
       - name: Verify dist/
-        run: ls -la dist || (echo "ERRO: dist/ não gerado" && exit 1)
+        run: |
+          ls -la dist || (echo 'ERRO: dist/ nao gerado' && exit 1)
 
-      # DEBUG: lista remoto (não falha se o cert não casar)
+      # DEBUG: lista remoto (nao falha se o cert nao casar)
       - name: Install lftp
-        run: sudo apt-get update && sudo apt-get install -y lftp
+        run: |
+          sudo apt-get update && sudo apt-get install -y lftp
 
       - name: Remote PWD & LIST (FTPS) - debug
         continue-on-error: true
@@ -44,7 +49,7 @@ jobs:
           PASS: ${{ secrets.FTP_PASSWORD }}
           DIR:  ${{ secrets.FTP_DIR }}
         run: |
-          echo "Conectando e listando diretório remoto..."
+          echo "Conectando e listando diretorio remoto..."
           lftp -e "
             set ftp:ssl-force true;
             set ftp:ssl-protect-data true;
@@ -62,14 +67,14 @@ jobs:
       - name: Upload via FTPS
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
-          server: ${{ secrets.FTP_SERVER }}     # ex.: ftp.copypriceprofx.site
+          server: ${{ secrets.FTP_SERVER }}     # ex.: ftp.copypriceprofx.site (evite IP)
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
           protocol: ftps
           port: 21
-          local-dir: ./dist/                   # <- barra final
-          server-dir: ${{ secrets.FTP_DIR }}   # <- barra final
-          security: loose                      # tolera cert diferente do host
+          local-dir: ./dist/                   # precisa terminar com /
+          server-dir: ${{ secrets.FTP_DIR }}   # precisa terminar com /
+          security: loose                      # tolera certificado diferente do host
           timeout: 600000
           exclude: |
             **/.git*
