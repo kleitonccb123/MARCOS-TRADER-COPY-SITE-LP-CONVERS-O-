@@ -32,7 +32,12 @@ jobs:
         run: echo "build=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" > dist/version.txt
 
       - name: Verify dist/
-        run: ls -la dist || { echo "ERRO: dist não gerado"; exit 1; }
+        run: |
+          if [ ! -d dist ]; then
+            echo "ERRO dist nao gerado"
+            exit 1
+          fi
+          ls -la dist
 
       - name: Install lftp
         run: sudo apt-get update && sudo apt-get install -y lftp
@@ -45,11 +50,9 @@ jobs:
           DIR:  ${{ secrets.FTP_DIR }}         # ex.: public_html/
           PORT: ${{ secrets.FTP_PORT }}
         run: |
-          # Valores padrão
           : "${PORT:=21}"
           : "${DIR:=public_html/}"
 
-          # Gera script do lftp sem embolar o YAML
           cat > deploy.lftp <<EOF
           set ftp:ssl-force true
           set ftp:ssl-allow true
