@@ -1,4 +1,4 @@
-name: Build & Deploy to Hostinger (FTPS)
+name: Build & Deploy to Hostinger (FTPS) - FIRST RUN (clean slate)
 
 on:
   push:
@@ -36,7 +36,7 @@ jobs:
         run: |
           ls -la dist || (echo 'ERRO: dist/ nao gerado' && exit 1)
 
-      # DEBUG: lista remoto (nao falha se o cert nao casar)
+      # (Opcional) Debug remoto - não falha se o cert não casar
       - name: Install lftp
         run: |
           sudo apt-get update && sudo apt-get install -y lftp
@@ -49,11 +49,11 @@ jobs:
           PASS: ${{ secrets.FTP_PASSWORD }}
           DIR:  ${{ secrets.FTP_DIR }}
         run: |
-          echo "Conectando e listando diretorio remoto..."
+          echo "Listando diretorio remoto..."
           lftp -e "
             set ftp:ssl-force true;
             set ftp:ssl-protect-data true;
-            set ssl:verify-certificate no;   # ignora CN mismatch
+            set ssl:verify-certificate no;
             set net:max-retries 2;
             set net:timeout 20;
             open -u $USER,$PASS $HOST;
@@ -64,22 +64,17 @@ jobs:
             bye
           "
 
-      - name: Upload via FTPS
+      # >>> PRIMEIRA EXECUÇÃO: APAGA public_html/ e publica do zero <<<
+      - name: Clean & Upload (dangerous - FIRST RUN ONLY)
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
-          server: ${{ secrets.FTP_SERVER }}     # ex.: ftp.copypriceprofx.site (evite IP)
+          server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
           protocol: ftps
           port: 21
-          local-dir: ./dist/                   # precisa terminar com /
-          server-dir: ${{ secrets.FTP_DIR }}   # precisa terminar com /
-          security: loose                      # tolera certificado diferente do host
+          local-dir: ./dist/
+          server-dir: ${{ secrets.FTP_DIR }}   # public_html/
+          security: loose
           timeout: 600000
-          exclude: |
-            **/.git*
-            **/.github/**
-            **/node_modules/**
-            **/src/**
-            **/vite.config.ts
-            **/tsconfig*.json
+          dangerous-clean-slate: true
